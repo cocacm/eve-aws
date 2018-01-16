@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key, Attr
 # run water algorithm and return result
 # if watering is required, invoke watering function
 
-def water_alg():
+def water_alg(event, context):
     # water algorithm
     # plot_area is omitted because it has not been implemented yet
     plant_factor = get_pf()
@@ -67,5 +67,3 @@ def eto_request():
 # def write_results():
 #     # put results to dynamoDB eve_sensor table
 #     # pf, eto, water_alg
-
-water_alg()
