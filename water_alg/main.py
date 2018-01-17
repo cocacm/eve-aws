@@ -5,44 +5,58 @@ from boto3.dynamodb.conditions import Key, Attr
 # PEP8 naming conventions for python variables and functions is snake_case
 # PEP8 convention for python comments is to start two spaces after a statement
 
-# run water algorithm and return result
-# if watering is required, invoke watering function
+dynamodb = boto3.resource('dynamodb')  # specifies the AWS service to use
+PF_TABLE = dynamodb.Table('<table>')  # specifies plant factor table
+DATA_TABLE = dynamodb.Table('<table>')  # specifies plant sensor table
 
 def water_alg(event, context):
-    # water algorithm
+    # water algorithm for determining watering amount
     # plot_area is omitted because it has not been implemented yet
-    plant_factor = get_pf()
-    eto = eto_request()
+    primary_key, sort_key, plant_type = get_event(event)
+    pf = get_pf(plant_type)
+    eto = get_eto()
 
     gal_water_reserve = eto * plant_factor * 0.623  # * plot_area
     cup_water_reserve = gal_water_reserve * 16  # converted to cups
     print ('water plot {} gallons or {} cups'.format(
         gal_water_reserve, cup_water_reserve))
-
+    # then determine if watering is required and invoke watering function
     # if waterMoisture < 3 & waterReserveForPlot > 1:
     #     print ("the plot will be watered")
     #     willWater = True
     # else:
     #     print ("the plot will not be watered")
     #     willWater = False
+    write_results(
+        primary_key, sort_key, pf, eto, gal_water_reserve)
 
-def get_pf():
+def get_event(event):
+    # query primary and sort keys from 'DATA_TABLE' for updating
+    # requires testing with AWS !!!
+    primary_key = str(
+    [event]['Records']['dynamodb'][0]['Key'][0])
+    sort_key = str(
+    [event]['Records']['dynamodb'][0]['Key'][1]))
+    plant_type = str('')
+    # then query plant_type for 'get_pf' function
+    print('primary = {}, sort = {}'.format(primary_key, sort_key)
+    return primary_key, sort_key, plant_type
+
+def get_pf(plant_type):
     # query plantfactor from database
     print('retrieving pf...')
-    dynamodb = boto3.resource('dynamodb')  # specifies the AWS service to use
-    pf_table = dynamodb.Table('eve_pf')  # specifies dynamodb table
 
-    # specifying what data to query
-    response = pf_table.query(
-        KeyConditionExpression = Key('<primary>').eq('<element>'))
-    items = response['Items']  # query returns a json object, 'Items'
+    # specifying what data to query from 'PF_TABLE'
+    response = PF_TABLE.query(
+        KeyConditionExpression = Key('<primary-key>').eq(plant_type))
+    items = response['Items']  # query returns a JSON object, 'Items'
 
-    # assign the plant factor from table to a variable
-    plant_factor = float(items[0]['<value>'])
+    # assign the plant factor value from 'PF_TABLE' to a variable
+    plant_factor = float(items[0]['<return-attribute>'])
     print(plant_factor)  # for testing purposes
     return plant_factor
 
-def eto_request():
+def get_eto():
     # CIMIS API request
     # KEY: www.cimis.water.ca.gov
     print('requesting eto...')
@@ -64,6 +78,18 @@ def eto_request():
     print(eto)  # for testing purposes
     return eto
 
-# def write_results():
-#     # put results to dynamoDB eve_sensor table
-#     # pf, eto, water_alg
+def write_results(primary, sort, pf, eto, water):
+    # put results to dynamoDB eve_sensor table
+    # pf, eto, water_alg
+    DATA_TABLE.update_item(
+        Key={
+            'plant_type': primary,
+            'date_time': sort
+        },
+        UpdateExpression='set pf = :pf, eto = :eto, water_alg= :alg',
+        ExpressionAttributeValues={
+            ':pf': pf,
+            ':eto': eto,
+            ':alg': water
+        }
+    )
