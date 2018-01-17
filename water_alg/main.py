@@ -1,9 +1,10 @@
-import requests
-import boto3
+import requests/requests
+import boto3/boto3
 import json
 from boto3.dynamodb.conditions import Key, Attr
 # PEP8 naming conventions for python variables and functions is snake_case
 # PEP8 convention for python comments is to start two spaces after a statement
+# install dependencies into folders with the same name
 
 dynamodb = boto3.resource('dynamodb')  # specifies the AWS service to use
 PF_TABLE = dynamodb.Table('<table>')  # specifies plant factor table
@@ -12,7 +13,7 @@ DATA_TABLE = dynamodb.Table('<table>')  # specifies plant sensor table
 def water_alg(event, context):
     # water algorithm for determining watering amount
     # plot_area is omitted because it has not been implemented yet
-    primary_key, sort_key, plant_type = get_event(event)
+    plant_type, date_time = get_event(event)
     pf = get_pf(plant_type)
     eto = get_eto()
 
@@ -28,7 +29,7 @@ def water_alg(event, context):
     #     print ("the plot will not be watered")
     #     willWater = False
     write_results(
-        primary_key, sort_key, pf, eto, gal_water_reserve)
+        plant_type, date_time, pf, eto, gal_water_reserve)
 
 def get_event(event):
     # query primary and sort keys from 'DATA_TABLE' for updating
@@ -37,13 +38,12 @@ def get_event(event):
     [event]['Records']['dynamodb'][0]['Key'][0])
     sort_key = str(
     [event]['Records']['dynamodb'][0]['Key'][1]))
-    plant_type = str('')
-    # then query plant_type for 'get_pf' function
-    print('primary = {}, sort = {}'.format(primary_key, sort_key)
-    return primary_key, sort_key, plant_type
+    print('primary = {}, sort = {}'.format(primary_key, sort_key)  # for testing
+    return primary_key, sort_key
 
 def get_pf(plant_type):
     # query plantfactor from database
+    # plant_type is used to specify the attribute from 'PF_TABLE'
     print('retrieving pf...')
 
     # specifying what data to query from 'PF_TABLE'
