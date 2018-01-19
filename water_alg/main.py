@@ -1,26 +1,38 @@
-import requests/requests
-import boto3/boto3
+import requests
+import boto3
 import json
+from decimal import Decimal, getcontext
 from boto3.dynamodb.conditions import Key, Attr
 # PEP8 naming conventions for python variables and functions is snake_case
 # PEP8 convention for python comments is to start two spaces after a statement
 # install dependencies into folders with the same name
 
 dynamodb = boto3.resource('dynamodb')  # specifies the AWS service to use
-PF_TABLE = dynamodb.Table('<table>')  # specifies plant factor table
-DATA_TABLE = dynamodb.Table('<table>')  # specifies plant sensor table
+PF_TABLE = dynamodb.Table('eve_pf')  # specifies plant factor table
+DATA_TABLE = dynamodb.Table('eve_sensor')  # specifies plant sensor table
+
+# query primary and sort keys from 'DATA_TABLE' for updating
+# requires testing with AWS !!!
+PLANT_TYPE = str(
+    event['Records'][0]['dynamodb']['Keys']['Primary']['S'])
+DATE_TIME = str(
+    event['Records'][0]['dynamodb']['Keys']['Sort']['S'])
 
 def water_alg(event, context):
     # water algorithm for determining watering amount
     # plot_area is omitted because it has not been implemented yet
-    plant_type, date_time = get_event(event)
-    pf = get_pf(plant_type)
+    print('from water_alg: plant_type = {}'.format(PLANT_TYPE))
+    print('plant type = {}, date time = {}'.format(
+        PLANT_TYPE, DATE_TIME))  # for testing
+
+    pf = get_pf()
     eto = get_eto()
 
-    gal_water_reserve = eto * plant_factor * 0.623  # * plot_area
+    gal_water_reserve = eto * pf * 0.623  # * plot_area
     cup_water_reserve = gal_water_reserve * 16  # converted to cups
     print ('water plot {} gallons or {} cups'.format(
         gal_water_reserve, cup_water_reserve))
+
     # then determine if watering is required and invoke watering function
     # if waterMoisture < 3 & waterReserveForPlot > 1:
     #     print ("the plot will be watered")
@@ -28,31 +40,21 @@ def water_alg(event, context):
     # else:
     #     print ("the plot will not be watered")
     #     willWater = False
-    write_results(
-        plant_type, date_time, pf, eto, gal_water_reserve)
+    getcontext().prec = 38
+    write_results(int(pf), int(eto), int(gal_water_reserve))
 
-def get_event(event):
-    # query primary and sort keys from 'DATA_TABLE' for updating
-    # requires testing with AWS !!!
-    primary_key = str(
-    [event]['Records']['dynamodb'][0]['Key'][0])
-    sort_key = str(
-    [event]['Records']['dynamodb'][0]['Key'][1]))
-    print('primary = {}, sort = {}'.format(primary_key, sort_key)  # for testing
-    return primary_key, sort_key
-
-def get_pf(plant_type):
+def get_pf():
     # query plantfactor from database
     # plant_type is used to specify the attribute from 'PF_TABLE'
     print('retrieving pf...')
 
     # specifying what data to query from 'PF_TABLE'
     response = PF_TABLE.query(
-        KeyConditionExpression = Key('<primary-key>').eq(plant_type))
+        KeyConditionExpression = Key('<PRIMARY-KEY>').eq(PLANT_TYPE))
     items = response['Items']  # query returns a JSON object, 'Items'
 
     # assign the plant factor value from 'PF_TABLE' to a variable
-    plant_factor = float(items[0]['<return-attribute>'])
+    plant_factor = float(items[0]['<ATTRIBUTE>'])   # the attribute requested
     print(plant_factor)  # for testing purposes
     return plant_factor
 
@@ -78,13 +80,13 @@ def get_eto():
     print(eto)  # for testing purposes
     return eto
 
-def write_results(primary, sort, pf, eto, water):
+def write_results(pf, eto, water):
     # put results to dynamoDB eve_sensor table
     # pf, eto, water_alg
     DATA_TABLE.update_item(
         Key={
-            'plant_type': primary,
-            'date_time': sort
+            'plant_type': PLANT_TYPE,
+            'date_time': DATE_TIME
         },
         UpdateExpression='set pf = :pf, eto = :eto, water_alg= :alg',
         ExpressionAttributeValues={
