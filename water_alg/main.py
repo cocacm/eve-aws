@@ -8,24 +8,25 @@ from boto3.dynamodb.conditions import Key, Attr
 # install dependencies into folders with the same name
 
 dynamodb = boto3.resource('dynamodb')  # specifies the AWS service to use
-PF_TABLE = dynamodb.Table('eve_pf')  # specifies plant factor table
+pf_table = dynamodb.Table('eve_pf')  # specifies plant factor table
 DATA_TABLE = dynamodb.Table('eve_sensor')  # specifies plant sensor table
 
 # query primary and sort keys from 'DATA_TABLE' for updating
 # requires testing with AWS !!!
-PLANT_TYPE = str(
-    event['Records'][0]['dynamodb']['Keys']['Primary']['S'])
-DATE_TIME = str(
-    event['Records'][0]['dynamodb']['Keys']['Sort']['S'])
 
 def water_alg(event, context):
     # water algorithm for determining watering amount
     # plot_area is omitted because it has not been implemented yet
-    print('from water_alg: plant_type = {}'.format(PLANT_TYPE))
-    print('plant type = {}, date time = {}'.format(
-        PLANT_TYPE, DATE_TIME))  # for testing
+    plant_type = str(
+        event['Records'][0]['dynamodb']['Keys']['Primary']['S'])
+    date_time = str(
+        event['Records'][0]['dynamodb']['Keys']['Sort']['S'])
 
-    pf = get_pf()
+    print('from water_alg: plant_type = {}'.format(plant_type))
+    print('plant type = {}, date time = {}'.format(
+        plant_type, date_time))  # for testing
+
+    pf = get_pf(plant_type)
     eto = get_eto()
 
     gal_water_reserve = eto * pf * 0.623  # * plot_area
@@ -40,17 +41,16 @@ def water_alg(event, context):
     # else:
     #     print ("the plot will not be watered")
     #     willWater = False
-    getcontext().prec = 38
-    write_results(int(pf), int(eto), int(gal_water_reserve))
+    write_results(str(pf), str(eto), str(gal_water_reserve))
 
-def get_pf():
-    # query plantfactor from database
+def get_pf(plant_type):
+    # query plant factor from database
     # plant_type is used to specify the attribute from 'PF_TABLE'
     print('retrieving pf...')
 
     # specifying what data to query from 'PF_TABLE'
-    response = PF_TABLE.query(
-        KeyConditionExpression = Key('<PRIMARY-KEY>').eq(PLANT_TYPE))
+    response = pf_table.query(
+        KeyConditionExpression = Key('<PRIMARY-KEY>').eq(plant_type))
     items = response['Items']  # query returns a JSON object, 'Items'
 
     # assign the plant factor value from 'PF_TABLE' to a variable
@@ -80,13 +80,13 @@ def get_eto():
     print(eto)  # for testing purposes
     return eto
 
-def write_results(pf, eto, water):
+def write_results(plant_type, date_time, pf, eto, water):
     # put results to dynamoDB eve_sensor table
     # pf, eto, water_alg
     DATA_TABLE.update_item(
         Key={
-            'plant_type': PLANT_TYPE,
-            'date_time': DATE_TIME
+            'plant_type': plant_type,
+            'date_time': date_time
         },
         UpdateExpression='set pf = :pf, eto = :eto, water_alg= :alg',
         ExpressionAttributeValues={
