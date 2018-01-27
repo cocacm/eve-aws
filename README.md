@@ -20,13 +20,11 @@ Three tables are used for the execution of this pipeline, their names and schema
 - *plant_type*: String
 - *plot_size*: String
 
-**eve_pf**
-**uses information from [UCANR](http://ucanr.edu/sites/UrbanHort/Water_Use_of_Turfgrass_and_Landscape_Plant_Materials/Plant_Factor_or_Crop_Coefficient__What%E2%80%99s_the_difference/) resources**
+**eve_pf** - **uses information from [UCANR](http://ucanr.edu/sites/UrbanHort/Water_Use_of_Turfgrass_and_Landscape_Plant_Materials/Plant_Factor_or_Crop_Coefficient__What%E2%80%99s_the_difference/) resources**
 - *plant_type*: String (PRIMARY KEY)
 - *plant_factor*: Number
 
-**eve_data**
-**lists with sensor, user, and alg info are inserted into this table**
+**eve_data** - **lists with sensor, user, and alg info are inserted into this table**
 - *date_time*: String (PRIMARY KEY)
 - *data*: Dict
   * *date_time*: String (PRIMARY KEY)
