@@ -12,7 +12,7 @@ From DynamoDB, our [water_alg](https://github.com/cocacm/eve-aws/tree/master/wat
 ## DynamoDB
 Three tables are used for the execution of this pipeline, their names and schema are listed below, strings are used for most of the attributes to maintain the integrity of the data when storing:
 
-**eve_user**
+**eve_user** - **pre-defined values, create an item for testing*
 - *user_id*: String (PRIMARY KEY)
 - *location*: String (SORT KEY)
 - *date_created*: String
