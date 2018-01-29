@@ -1,8 +1,9 @@
 import requests  # must be included in AWS deployment package
 import tables  # 'tables.py' script for querying and inserting to dynamoDB
+import json
+import boto3
 # PEP8 naming conventions for python variables and functions is snake_case
 # PEP8 convention for python in-line comments is to start two spaces after a statement
-
 
 def water_alg(event, context):
     # water algorithm for determining watering amount
@@ -29,6 +30,23 @@ def water_alg(event, context):
     alg = [str(pf), str(eto), str(gal_water_reserve)]
     tables.write_results(date_time, user, alg)
 
+    #testing for pi publishing
+    message = {
+        'topic': 'thing02/water',
+        'payload': {'message': 'test'}
+    }
+
+    boto3.client(
+        'iot-data',
+        region_name='us-west-2',
+        aws_access_key_id='<ACCESS-KEY>',
+        aws_secret_access_key='<SECRET-ACCESS-KEY>'
+        ).publish(
+            topic='thing02/water',
+            payload=json.dumps(message),
+            qos=0
+            )
+    print(json.dumps(message))  # for testing purposes
 
 def get_pf(plant_type):
     # query plantfactor from database
@@ -66,4 +84,6 @@ def get_eto(date_time):
             print(eto)  # for testing purposes
         except TypeError:
             print('...get_eto failed')
+        except requests.exceptions.ConnectionError:
+            return 1
     return eto
