@@ -11,9 +11,14 @@ def water_alg(event, context):
     user = tables.get_user_info()  # list with attributes from 'eve_user' table
 
     plant_type = user[1]
-    date_time = str(
-        event['Records'][0]['dynamodb']['Keys']['date_time']['S'])
-
+    # date_time = str(
+    #     event['Records'][0]['dynamodb']['Keys']['date_time'])
+    #
+    #Access date time from Pi payload. Published as ['payload']['date_time']
+    fullDate_Time = str(event['date_time'])
+    date_time = fullDate_Time[:10]
+    print (fullDate_Time)
+    print (date_time)
     print('plant type = {}, date time = {}'.format(
         plant_type, date_time))  # for testing
 
@@ -28,7 +33,7 @@ def water_alg(event, context):
 
     # list with the values and results of 'water_alg' calculations
     alg = [str(pf), str(eto), str(gal_water_reserve)]
-    tables.write_results(date_time, user, alg)
+    tables.write_results(fullDate_Time, user, alg)
 
     #testing for pi publishing
     message = {
@@ -39,8 +44,8 @@ def water_alg(event, context):
     boto3.client(
         'iot-data',
         region_name='us-west-2',
-        aws_access_key_id='<ACCESS-KEY>',
-        aws_secret_access_key='<SECRET-ACCESS-KEY>'
+        # aws_access_key_id='<ACCESS-KEY>',
+        # aws_secret_access_key='<SECRET-ACCESS-KEY>'
         ).publish(
             topic='thing02/water',
             payload=json.dumps(message),
@@ -78,12 +83,11 @@ def get_eto(date_time):
         try:
             req = requests.get('http://et.water.ca.gov/api/data?', params=payload)
             full_response = req.json()
-
+            print(full_response)
             # specifies the ETO from api request and assigns it to a variable
             eto = full_response['Data']['Providers'][0]['Records'][0]['DayAsceEto']['Value']
             print(eto)  # for testing purposes
-        except TypeError:
-            print('...get_eto failed')
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, TypeError) as e:
+            print("get_eto failed")
             return 1
     return eto
