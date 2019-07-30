@@ -67,7 +67,7 @@ def get_eto(date_time):
     # CIMIS API request
     # KEY: www.cimis.water.ca.gov
     print('requesting eto...')
-    api_key = 'f972cb2a-79fb-440f-9e78-7bf034475e22'
+    api_key = 'XXXXXXX-XXXXXXXX-XXXXXXXXXX-XXXXXXXXXXX'
     wsn_num = '204'  # WSN station #204 (SCV)
     start_end_date = date_time.split(' ')[0]
     payload = {
